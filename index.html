@@ -4,45 +4,43 @@
 <meta charset="UTF-8">
 <title>Gems VIP</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
 <style>
 body {
-    background: #0b0f16;
-    color: #fff;
-    font-family: Arial;
-    text-align: center;
-    direction: rtl;
-    padding: 20px;
+    background:#0b0f16;
+    color:#fff;
+    font-family:Arial;
+    text-align:center;
+    direction:rtl;
+    padding:20px;
 }
-h1 { color: #00eaff; }
-.hidden { display:none; }
-
-.login-box {
+.hidden{display:none}
+.login-box{
     background:#111827;
     padding:20px;
     border-radius:12px;
     width:320px;
     margin:40px auto;
 }
-input,button {
+input,button{
     padding:10px;
     margin:10px;
     border-radius:8px;
     border:none;
     font-size:16px;
 }
-button {
+button{
     background:#00eaff;
     font-weight:bold;
     cursor:pointer;
 }
-.grid {
+.grid{
     display:grid;
     grid-template-columns:repeat(5,70px);
     gap:10px;
     justify-content:center;
+    margin-top:20px;
 }
-.cell {
+.cell{
     width:70px;height:70px;
     background:#1c2433;
     border-radius:10px;
@@ -52,20 +50,31 @@ button {
     font-size:32px;
     color:transparent;
 }
-.active {
+.active{
     background:#32ffe4;
     color:#003;
 }
+.loader{
+    border:6px solid #1e293b;
+    border-top:6px solid #00eaff;
+    border-radius:50%;
+    width:55px;height:55px;
+    margin:30px auto;
+    animation:spin 1s linear infinite;
+}
+@keyframes spin{100%{transform:rotate(360deg)}}
 </style>
 </head>
 
 <body>
 
+<!-- BLOCKED -->
 <div id="blocked" class="hidden">
-    <h1>⛔ انتهى وقت الاستخدام</h1>
-    <p>هذا النظام يعمل مرة واحدة فقط لمدة 5 دقائق.</p>
+    <h1 style="color:red">⛔ انتهى وقت الاستخدام</h1>
+    <p>النظام يعمل مرة واحدة فقط لمدة 5 دقائق.</p>
 </div>
 
+<!-- LOGIN -->
 <div id="loginPage">
     <h1>تسجيل دخول VIP</h1>
     <div class="login-box">
@@ -76,21 +85,24 @@ button {
     </div>
 </div>
 
+<!-- LOADING -->
+<div id="loadingPage" class="hidden">
+    <h1>جاري الاتصال بالسيرفر...</h1>
+    <div class="loader"></div>
+</div>
+
+<!-- HACK -->
 <div id="hackPage" class="hidden">
     <h1>جواهر VIP</h1>
     <div class="grid" id="grid"></div>
     <button onclick="startHack()">Start</button>
+    <button onclick="againHack()">Again</button>
 </div>
 
 <script>
-/* ================== TIME LOCK ================== */
-const LIFE_TIME = 5 * 60 * 1000; // 5 دقائق
-
-function getKey() {
-    return btoa(navigator.userAgent + screen.width + screen.height);
-}
-
-const KEY = getKey();
+/* ========= TIME LOCK ========= */
+const LIFE_TIME = 5 * 60 * 1000;
+const KEY = btoa(navigator.userAgent + screen.width + screen.height);
 const now = Date.now();
 
 let startTime =
@@ -98,71 +110,76 @@ let startTime =
     sessionStorage.getItem(KEY) ||
     getCookie(KEY);
 
-if (!startTime) {
+if(!startTime){
     localStorage.setItem(KEY, now);
     sessionStorage.setItem(KEY, now);
     setCookie(KEY, now, 365);
     startTime = now;
 }
 
-if (now - startTime > LIFE_TIME) {
-    blockAll();
-}
-
-setInterval(() => {
-    if (Date.now() - startTime > LIFE_TIME) {
-        blockAll();
+function checkTime(){
+    if(Date.now() - startTime > LIFE_TIME){
+        document.body.innerHTML =
+        `<h1 style="color:red">⛔ انتهى وقت الاستخدام</h1>`;
     }
-}, 1000);
-
-function blockAll() {
-    document.body.innerHTML = `
-        <h1 style="color:red">⛔ انتهى وقت الاستخدام</h1>
-        <p>تم إغلاق النظام نهائيًا.</p>
-    `;
 }
+setInterval(checkTime,1000);
 
-/* ================== LOGIN ================== */
-function login() {
-    if (document.getElementById("userPass").value === "VIP00") {
+/* ========= LOGIN ========= */
+function login(){
+    if(document.getElementById("userPass").value==="VIP00"){
         document.getElementById("loginPage").classList.add("hidden");
-        document.getElementById("hackPage").classList.remove("hidden");
-    } else {
-        document.getElementById("errorMsg").textContent = "كلمة المرور غلط";
+        document.getElementById("loadingPage").classList.remove("hidden");
+        setTimeout(()=>{
+            document.getElementById("loadingPage").classList.add("hidden");
+            document.getElementById("hackPage").classList.remove("hidden");
+        },3000);
+    }else{
+        document.getElementById("errorMsg").textContent="كلمة المرور غلط";
     }
 }
 
-/* ================== GRID ================== */
-const grid = document.getElementById("grid");
-for (let i = 0; i < 25; i++) {
-    const d = document.createElement("div");
-    d.className = "cell";
-    d.id = "c"+i;
-    d.textContent = "💎";
+/* ========= GRID ========= */
+const grid=document.getElementById("grid");
+for(let i=0;i<25;i++){
+    let d=document.createElement("div");
+    d.className="cell";
+    d.id="c"+i;
+    d.textContent="💎";
     grid.appendChild(d);
 }
 
-function startHack() {
+function startHack(){
+    resetGrid();
+    activateRandom();
+}
+function againHack(){
+    resetGrid();
+    activateRandom();
+}
+function resetGrid(){
     document.querySelectorAll(".cell").forEach(c=>c.classList.remove("active"));
+}
+function activateRandom(){
     let arr=[];
     while(arr.length<5){
         let r=Math.floor(Math.random()*25);
-        if(!arr.includes(r)) arr.push(r);
+        if(!arr.includes(r))arr.push(r);
     }
     arr.forEach(i=>document.getElementById("c"+i).classList.add("active"));
 }
 
-/* ================== COOKIES ================== */
-function setCookie(name,value,days){
-    let d=new Date();
-    d.setTime(d.getTime()+days*24*60*60*1000);
-    document.cookie=name+"="+value+";expires="+d.toUTCString()+";path=/";
+/* ========= COOKIES ========= */
+function setCookie(n,v,d){
+    let t=new Date();
+    t.setTime(t.getTime()+d*86400000);
+    document.cookie=n+"="+v+";expires="+t.toUTCString()+";path=/";
 }
-function getCookie(name){
+function getCookie(n){
     let c=document.cookie.split("; ");
     for(let i of c){
         let p=i.split("=");
-        if(p[0]===name) return p[1];
+        if(p[0]===n)return p[1];
     }
     return null;
 }
