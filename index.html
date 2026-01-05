@@ -5,7 +5,7 @@
 <title>Gems VIP</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-body {
+body{
     background:#0b0f16;
     color:#fff;
     font-family:Arial;
@@ -14,6 +14,8 @@ body {
     padding:20px;
 }
 .hidden{display:none}
+h1{color:#00eaff}
+
 .login-box{
     background:#111827;
     padding:20px;
@@ -21,6 +23,7 @@ body {
     width:320px;
     margin:40px auto;
 }
+
 input,button{
     padding:10px;
     margin:10px;
@@ -28,11 +31,13 @@ input,button{
     border:none;
     font-size:16px;
 }
+
 button{
     background:#00eaff;
     font-weight:bold;
     cursor:pointer;
 }
+
 .grid{
     display:grid;
     grid-template-columns:repeat(5,70px);
@@ -40,8 +45,10 @@ button{
     justify-content:center;
     margin-top:20px;
 }
+
 .cell{
-    width:70px;height:70px;
+    width:70px;
+    height:70px;
     background:#1c2433;
     border-radius:10px;
     display:flex;
@@ -50,35 +57,41 @@ button{
     font-size:32px;
     color:transparent;
 }
+
 .active{
     background:#32ffe4;
     color:#003;
 }
+
+/* Loading */
 .loader{
+    margin:30px auto;
     border:6px solid #1e293b;
     border-top:6px solid #00eaff;
     border-radius:50%;
-    width:55px;height:55px;
-    margin:30px auto;
+    width:55px;
+    height:55px;
     animation:spin 1s linear infinite;
 }
-@keyframes spin{100%{transform:rotate(360deg)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Gem animation */
+.fade{
+    animation:fadeIn .6s ease forwards;
+}
+@keyframes fadeIn{
+    from{opacity:0;transform:scale(.5)}
+    to{opacity:1;transform:scale(1)}
+}
 </style>
 </head>
-
 <body>
-
-<!-- BLOCKED -->
-<div id="blocked" class="hidden">
-    <h1 style="color:red">⛔ انتهى وقت الاستخدام</h1>
-    <p>النظام يعمل مرة واحدة فقط لمدة 5 دقائق.</p>
-</div>
 
 <!-- LOGIN -->
 <div id="loginPage">
     <h1>تسجيل دخول VIP</h1>
     <div class="login-box">
-        <input id="userID" placeholder="ID">
+        <input id="userID" placeholder="اكتب الـ ID">
         <input id="userPass" type="password" placeholder="كلمة المرور">
         <button onclick="login()">دخول</button>
         <p id="errorMsg" style="color:red"></p>
@@ -87,7 +100,7 @@ button{
 
 <!-- LOADING -->
 <div id="loadingPage" class="hidden">
-    <h1>جاري الاتصال بالسيرفر...</h1>
+    <h1 id="loadingText">جاري الاتصال بالسيرفر...</h1>
     <div class="loader"></div>
 </div>
 
@@ -100,47 +113,17 @@ button{
 </div>
 
 <script>
-/* ========= TIME LOCK ========= */
-const LIFE_TIME = 5 * 60 * 1000;
-const KEY = btoa(navigator.userAgent + screen.width + screen.height);
-const now = Date.now();
+// ========= TIME LOCK 5 دقايق عالمي =========
+const START_TIME = new Date("2026-01-05T17:30:00Z").getTime(); // الوقت العالمي اللي تبدأ منه الـ5 دقايق
+const LIFE_TIME = 5*60*1000; // 5 دقايق بالميلي ثانية
 
-let startTime =
-    localStorage.getItem(KEY) ||
-    sessionStorage.getItem(KEY) ||
-    getCookie(KEY);
-
-if(!startTime){
-    localStorage.setItem(KEY, now);
-    sessionStorage.setItem(KEY, now);
-    setCookie(KEY, now, 365);
-    startTime = now;
+if(Date.now() > START_TIME + LIFE_TIME){
+    document.body.innerHTML = '<h1 style="color:red">⛔ انتهى وقت الاستخدام</h1>';
+    throw new Error("وقت الاستخدام انتهى");
 }
 
-function checkTime(){
-    if(Date.now() - startTime > LIFE_TIME){
-        document.body.innerHTML =
-        `<h1 style="color:red">⛔ انتهى وقت الاستخدام</h1>`;
-    }
-}
-setInterval(checkTime,1000);
-
-/* ========= LOGIN ========= */
-function login(){
-    if(document.getElementById("userPass").value==="VIP00"){
-        document.getElementById("loginPage").classList.add("hidden");
-        document.getElementById("loadingPage").classList.remove("hidden");
-        setTimeout(()=>{
-            document.getElementById("loadingPage").classList.add("hidden");
-            document.getElementById("hackPage").classList.remove("hidden");
-        },3000);
-    }else{
-        document.getElementById("errorMsg").textContent="كلمة المرور غلط";
-    }
-}
-
-/* ========= GRID ========= */
-const grid=document.getElementById("grid");
+// ========= GRID =========
+const grid = document.getElementById("grid");
 for(let i=0;i<25;i++){
     let d=document.createElement("div");
     d.className="cell";
@@ -149,39 +132,58 @@ for(let i=0;i<25;i++){
     grid.appendChild(d);
 }
 
+let busy = false;
+
+// ========= LOGIN =========
+function login(){
+    const id = document.getElementById("userID").value;
+    const pass = document.getElementById("userPass").value;
+    if(pass !== "VIP00"){
+        document.getElementById("errorMsg").textContent="كلمة المرور غلط";
+        return;
+    }
+    document.getElementById("loginPage").classList.add("hidden");
+    document.getElementById("loadingPage").classList.remove("hidden");
+    document.getElementById("loadingText").textContent = "جاري الاتصال بالسيرفر الخاص بالـ ID: " + id;
+
+    setTimeout(()=>{
+        document.getElementById("loadingPage").classList.add("hidden");
+        document.getElementById("hackPage").classList.remove("hidden");
+    },2500);
+}
+
+// ========= HACK =========
 function startHack(){
+    if(busy) return;
+    busy=true;
     resetGrid();
     activateRandom();
+    busy=false;
 }
+
 function againHack(){
+    if(busy) return;
+    busy=true;
     resetGrid();
-    activateRandom();
+    busy=false;
 }
-function resetGrid(){
-    document.querySelectorAll(".cell").forEach(c=>c.classList.remove("active"));
-}
+
 function activateRandom(){
     let arr=[];
     while(arr.length<5){
         let r=Math.floor(Math.random()*25);
-        if(!arr.includes(r))arr.push(r);
+        if(!arr.includes(r)) arr.push(r);
     }
-    arr.forEach(i=>document.getElementById("c"+i).classList.add("active"));
+    arr.forEach(i=>{
+        let c=document.getElementById("c"+i);
+        c.classList.add("active","fade");
+    });
 }
 
-/* ========= COOKIES ========= */
-function setCookie(n,v,d){
-    let t=new Date();
-    t.setTime(t.getTime()+d*86400000);
-    document.cookie=n+"="+v+";expires="+t.toUTCString()+";path=/";
-}
-function getCookie(n){
-    let c=document.cookie.split("; ");
-    for(let i of c){
-        let p=i.split("=");
-        if(p[0]===n)return p[1];
-    }
-    return null;
+function resetGrid(){
+    document.querySelectorAll(".cell").forEach(c=>{
+        c.classList.remove("active","fade");
+    });
 }
 </script>
 
